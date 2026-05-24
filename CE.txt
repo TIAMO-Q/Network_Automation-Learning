@@ -1,0 +1,47 @@
+【SSH】
+stelnet server enable
+ssh user python authentication-type password
+ssh user python service-type stelnet
+user-interface vty 0 4
+ authentication-mode aaa
+ protocol inbound ssh
+aaa
+local-user python password  cipher Huawei@123
+local-user python service-type ssh
+local-user python level 3
+
+【sftp】
+sftp server enable
+ssh user python service-type stelnet sftp 
+ssh user python sftp-directory cfcard:
+ssh authorization-type default root 
+
+【snmp】
+snmp-agent usm-user v3 admin group dc-admin
+snmp-agen usm v3 admin au sha
+Huawei@123
+Huawei@123
+snmp-a usm-user v3 admin pr aes128
+Huawei@123
+Huawei@123
+snmp-agent trap source ME0/0/0
+snmp-agent mib-view included nt iso             
+snmp-agent mib-view included rd iso             
+snmp-agent mib-view included wt iso   
+snmp-agent mib-view included iso-view iso 
+snmp-agent group v3 dc-admin privacy read-view rd write-view wt notify-view nt
+
+【netconf】
+aaa
+local-user netconf password irreversible-cipher Huawei12#$
+local-user netconf service-type ssh 
+local-user netconf level 3
+quit
+ssh user netconf authentication-type password 
+ssh user netconf service-type snetconf      
+snetconf server enable
+netconf
+protocol inbound ssh port 830
+quit
+
+

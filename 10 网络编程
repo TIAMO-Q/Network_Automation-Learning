@@ -1,0 +1,570 @@
+#   网络编程
+## 1. C/S架构与B/S架构
+c/s架构  client/server  
+b/s架构  browser（浏览器）/server
+
+web1.0 纯静态页面，不能交互html文档  
+web2.0 支持用户上传信息，交互，购物 网站后台：ruby java perl php python  
+web3.0 移动互联网时代 衣食住行 出门只带个手机 网站后台:java php python go
+
+
+
+## 2.半链接池
+假设同一时间有多个请求从客户端发送到服务端，服务端不会全部把这些请求加载到内存中，
+
+而是会根据半链接池的容量将这些请求放在半链接池中。由于此时只是访问的请求，并不是一个完整的链接，因此叫做半链接。
+
+因此如果遇到洪水攻击，需要减少半链接池的容量。
+
+
+
+## 3.Socket模块
+### 3.1 Socket（套接字）简介
+如果正常情况下，当我们开发了应用程序后，数据需要根据网络模型逐层完成封装才能发送出去。如果这些封装都由自己来完成，那么必须十分清楚每一层的协议的各个字段，并且很清晰的了解封装的方法才能最终将数据发送出去。
+
+而在真实做程序开发时，可以理解为应用层与传输层之间，还夹杂了一层socket抽象层，也叫作套接字。
+
+借助于该抽象层，我们在应用层产生的所有数据只要通过socket开放的接口丢给socket，那么socket就会自动的对该数据去完成封装。同时对于收到的数据，也可以解封装后交给应用程序。因此套接字封装的是传输层及以下
+
+python当中也提供了socket模块
+
+
+
+应用层产生数据，作为开发者，不需要关注每一层具体是如何完成封装的，而是直接讲数据丢给socket模块的接口，由socket逻辑抽象层自动的完成封装
+
+### 3.2 基于tcp协议的套接字通信
+#### 3.2.1 基本通信
++ server
+
+```python
+import socket
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的，使用 IPv4 地址
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8080))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+conn, client_addr = server.accept()
+# 5. 接受信息，recv表示每次最多接收多少个字节的数据
+data = conn.recv(1024).decode("utf-8")
+print(data)
+# 6. 发送消息，使用send方法，只能发从字节类型的数据
+conn.send(data.upper().encode("utf-8"))
+# 7. 关闭连接
+conn.close()
+# # 8. 关闭服务器
+# server.close()
+```
+
++ client
+
+```python
+import socket
+
+# 1. 产生一个客户端
+client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# 2. 发起连接请求
+client.connect(("127.0.0.1", 8080))
+# 3. 发信息
+user_input = input("请输入需要转换的信息:")
+client.send(user_input.encode("utf-8"))
+# 4. 收信息
+res = client.recv(1024).decode("utf-8")
+print(res)
+# 5. 关闭客户端
+client.close()
+```
+
+#### 3.2.2 通信循环
++ server
+
+```python
+import socket
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8080))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+
+conn, client_addr = server.accept()
+    # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+while True:
+    data = conn.recv(1024).decode("utf-8")
+    print(data)
+    if data.upper() == "Q":break
+    # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+    conn.send(data.upper().encode("utf-8"))
+# # 7. 关闭连接
+conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+
+```
+
++ client
+
+```python
+import socket
+
+# 1. 产生一个客户端
+client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# 2. 发起连接请求
+client.connect(("127.0.0.1", 8080))
+# 3. 发信息
+while True:
+    user_input = input("请输入需要转换的信息(q/Q退出):")
+    client.send(user_input.encode("utf-8"))
+    if user_input.upper() == "Q": break
+    # 4. 收信息
+    res = client.recv(1024).decode("utf-8")
+    print(res)
+# 5. 关闭客户端
+client.close()
+```
+
+
+
+#### 3.2.3 BUG修正
+1. 当客户端发送给服务端的信息为空时,此时服务端会一直等待从自身的缓存当中拿到数据，因此程序会出现卡壳的现象
+
+tips:在进行网络编程时，客户调和服务端使用send和recv方法来发送和接收数据时，从基本角度来说并不是跟对方打交道，而是跟自身的缓存打交道
+
++ server
+
+```python
+import socket
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8080))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+
+conn, client_addr = server.accept()
+    # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+while True:
+    data = conn.recv(1024).decode("utf-8")
+    if data.__len__() == 0:continue
+    print(data)
+    if data.upper() == "Q":break
+    # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+    conn.send(data.upper().encode("utf-8"))
+# # 7. 关闭连接
+conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+
+```
+
++ client
+
+```python
+import socket
+
+# 1. 产生一个客户端
+client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# 2. 发起连接请求
+client.connect(("127.0.0.1", 8080))
+# 3. 发信息
+while True:
+    user_input = input("请输入需要转换的信息(q/Q退出):").strip()
+    if user_input.__len__() == 0:continue
+    client.send(user_input.encode("utf-8"))
+    if user_input.upper() == "Q": break
+    # 4. 收信息
+    res = client.recv(1024).decode("utf-8")
+    print(res)
+# 5. 关闭客户端
+client.close()
+```
+
++ 如果客户端断开连接，此时服务端会卡在接收信息的地方
+
+server
+
+```python
+import socket
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8080))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+while True:
+    conn, client_addr = server.accept()
+        # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+
+    while True:
+        data = conn.recv(1024).decode("utf-8")
+        print("客户端发来的信息为%s"%data)
+        if data.__len__() == 0:break   #通过这一步来解决客户端意外断开连接的情况
+        if data.upper() == "Q":break
+        # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+        conn.send(data.upper().encode("utf-8"))
+
+    # # 7. 关闭连接
+    conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+```
+
+
+
+#### 3.2.4 链接循环
+```python
+import socket
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8080))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+while True:
+    conn, client_addr = server.accept()
+        # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+
+    while True:
+        data = conn.recv(1024).decode("utf-8")
+        if data.__len__() == 0:break
+        if data.upper() == "Q":break
+        # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+        conn.send(data.upper().encode("utf-8"))
+
+    # # 7. 关闭连接
+    conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+
+```
+
+#### 3.2.5 验证半链接池
+```python
+import socket
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的，使用IPV4
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡，传入一个元组
+server.bind(("127.0.0.1", 8080))
+# 3.开机
+# listen标识了半连接池的容量，最多允许 5 个客户端在排队等待被 accept 处理
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+while True:
+    conn, client_addr = server.accept()
+        # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+
+    while True:
+        data = conn.recv(1024).decode("utf-8")
+        if data.__len__() == 0:break
+        if data.upper() == "Q":break
+        # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+        conn.send(data.upper().encode("utf-8"))
+
+    # # 7. 关闭连接
+    conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+
+```
+
++ client
+
+```python
+import socket
+
+# 1. 产生一个客户端
+client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# 2. 发起连接请求
+client.connect(("127.0.0.1", 8080))
+# 3. 发信息
+while True:
+    user_input = input("请输入需要转换的信息(q/Q退出):").strip()
+    if user_input.__len__() == 0:continue
+    client.send(user_input.encode("utf-8"))
+    if user_input.upper() == "Q": break
+    # 4. 收信息
+    res = client.recv(1024).decode("utf-8")
+    print(res)
+# 5. 关闭客户端
+client.close()
+```
+
+
+
+### 3.3 基于udp协议的套接字通信
++ server
+
+```python
+from socket import *
+
+#创建一个基于UDP套接字通信的服务端
+server = socket(AF_INET, SOCK_DGRAM) 
+# 服务端绑定IP和端口信息
+server.bind(('127.0.0.1',8080))
+# 设定最大接收字节数，recvfrom返回值是一个元组，分别是接收到的数据和客户端的ip以及端口信息
+data_info,client_addr = server.recvfrom(1024)
+res = data_info.decode("utf-8")
+result = res+res
+print(client_addr)
+# 发送数据，同时需要指定客户端的ip和端口信息
+server.sendto(result.encode("utf-8"),client_addr)
+```
+
++ client
+
+```python
+from socket import *
+
+#创建一个基于UDP套接字通信的客户端
+client = socket(AF_INET,SOCK_DGRAM)
+user_input = input("请输入一段内容:").strip()
+# 发送数据，同时需要指定服务端的ip和端口信息
+client.sendto(user_input.encode("utf-8"),('127.0.0.1',8080))
+# 设定接收最大字节数，recvfrom返回的是数据+服务端ip和端口的信息
+res, server_addr= client.recvfrom(1024)
+print(res.decode("utf-8"))
+```
+
+
+
+### 3.4 粘包
+#### 3.4.1 什么是粘包？
++ 补充subprocess模块
+
+```python
+# args=cmd：要执行的命令（字符串）。
+# shell=True：在 shell（如 Windows cmd 或 Linux bash）里执行命令，这意味着你可以用管道、重定向、系统变量等。
+# stdout=subprocess.PIPE：标准输出被捕获到管道。
+# stderr=subprocess.PIPE：标准错误也被捕获
+# 读取命令运行后的正常输出和错误输出（字节流）。
+# 拼接后用 GBK 解码，因为这段代码很可能运行在中文 Windows 上，系统命令的输出默认是 GBK 编码，用 UTF-8 会乱码
+# 最后打印结果。
+
+#Popen = 打开一个进程，相当于“启动命令”。
+#PIPE = 管道，是连接子进程和 Python 程序的数据通道，让你能在代码里捕获输出。
+#英文全称：object（对象）的缩写
+#std：standard（标准）out：output（输出）err：error（错误）
+
+import subprocess
+
+while True:
+    cmd = input("请输入需要执行的命令：")
+    if cmd.upper() == "Q":break
+       obj = subprocess.Popen(args=cmd,  
+                              shell=True,
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.PIPE)
+    std_out = obj.stdout.read()
+    std_err = obj.stderr.read()
+    result = (std_out+std_err).decode("GBK")
+    print(result)
+```
+
+
+
+对于TCP协议而言，recv和send本质上都是与自身的缓存打交道，send就是将缓存当中的数据发送出去，而recv就是根据设置的接收最大字节数从缓存中取出该长度的数据
+
+在执行不同的命令时，所得到的回显结果是没有边界感的，所有的数据都粘在一起，这就是TCP的粘包现象
+
++ server
+
+```python
+import socket
+import subprocess
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8081))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+while True:
+    conn, client_addr = server.accept()
+        # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+
+    while True:
+        cmd = conn.recv(1024).decode("utf-8")
+        if cmd.__len__() == 0:break
+        if cmd.upper() == "Q":break
+        obj = subprocess.Popen(args=cmd,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE
+                               )
+        std_out = obj.stdout.read()
+        std_err = obj.stderr.read()
+        result = std_out + std_err
+        # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+        conn.send(result)
+
+    # # 7. 关闭连接
+    conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+
+```
+
++ client
+
+```python
+import socket
+
+# 1. 产生一个客户端
+client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+# 2. 发起连接请求
+client.connect(("127.0.0.1", 8081))
+# 3. 发信息
+while True:
+    user_input = input("请输入需要执行的命令(q/Q退出):").strip()
+    if user_input.__len__() == 0:continue
+    client.send(user_input.encode("utf-8"))
+    if user_input.upper() == "Q": break
+    # 4. 收信息
+    res = client.recv(1024).decode("GBK")
+    print(res)
+# 5. 关闭客户端
+client.close()
+
+```
+
+
+
+
+
+#### 3.4.2 如何解决粘包
++ server
+
+```python
+import socket
+import subprocess
+import struct
+
+# 1.买服务器
+# AF_INET 标识了socket的地址族，是用于网络传输的
+# SOCK_STREAM 标识协议的类型，而TCP协议是一种典型的流式协议
+# 此时的server就定义了一个用于网络传输，并且采用TCP协议的服务器
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2.绑定网卡
+server.bind(("127.0.0.1", 8081))
+# 3.开机
+# listen标识了半连接池的容量，此时最多可以容纳5个连接请求
+server.listen(5)
+# 4.监听连接请求
+# (1) 从半连接池当中取出一个链接请求交给accept处理，建立链接
+# (2) accept处理完链接请求得到的返回值为一个元组，分别代表真实
+#     建成的连接，以及该连接中客户端具体的IP地址信息
+while True:
+    conn, client_addr = server.accept()
+        # # 5. 接受信息，recv表示每次最多接收多少个字节的数据
+
+    while True:
+        cmd = conn.recv(1024).decode("utf-8")
+        if cmd.__len__() == 0:break
+        if cmd.upper() == "Q":break
+        obj = subprocess.Popen(args=cmd,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE
+                               )
+        std_out = obj.stdout.read()
+        std_err = obj.stderr.read()
+        result = std_out + std_err
+        total_size = struct.pack('i',len(result))
+        # # 6. 发送消息，使用send方法，只能发从字节类型的数据
+        conn.send(total_size)
+        conn.send(result)
+
+    # # 7. 关闭连接
+    conn.close()
+# # # 8. 关闭服务器
+# # server.close()
+```
+
++ client
+
+```python
+import socket
+import struct
+
+# 1. 产生一个客户端
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2. 发起连接请求
+client.connect(("127.0.0.1", 8081))
+# 3. 发信息
+while True:
+    user_input = input("请输入需要执行的命令(q/Q退出):").strip()
+    if user_input.__len__() == 0: continue
+    client.send(user_input.encode("utf-8"))
+    if user_input.upper() == "Q": break
+    # 4. 收信息
+    total_size = struct.unpack('i', client.recv(4))[0]
+    size = 0
+    res = ""
+    while size < total_size:
+        res += client.recv(1024).decode("GBK")
+        size += 1024
+    print(res)
+
+# 5. 关闭客户端
+client.close()
+```

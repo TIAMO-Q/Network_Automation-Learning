@@ -1,0 +1,10 @@
+# 基础 SSH 连接库
+paramiko>=3.0.0
+# 更高级的网络自动化库
+netmiko>=4.0.0
+# 用于解析设备输出文本
+textfsm>=1.1.0
+# 用于生成动态配置
+jinja2>=3.0.0
+# 用于并发编程，Python 自带，无需安装
+# concurrent.futures 是 Python 3 标准库的一部分

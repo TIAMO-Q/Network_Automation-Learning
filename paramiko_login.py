@@ -1,0 +1,20 @@
+import time
+import paramiko
+
+ssh=paramiko.SSHClient()
+ssh.set_missing_host_key_policy((paramiko.AutoAddPolicy()))
+ssh.connect('16.0.0.91',username='python',password='Huawei@123',port=22)
+vty=ssh.invoke_shell()
+res = vty.recv(1024).decode('utf-8')
+print(res)
+vty.send('N\n')
+time.sleep(0.5)
+print(vty.recv(1024).decode('utf-8'))
+vty.send('sys\n')
+vty.send('screen-length 0 \n')
+vty.send('commit\n')
+time.sleep(0.5)
+vty.send('dis cu\n')
+time.sleep(0.5)
+res = vty.recv(1024).decode('utf-8')
+print(res)

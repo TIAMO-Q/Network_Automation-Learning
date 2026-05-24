@@ -1,0 +1,4 @@
+sftp server enable
+ssh user python service-type stelnet sftp
+ssh user python sftp-directory cfcard:
+ssh authorization-type default root
